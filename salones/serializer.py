@@ -7,21 +7,29 @@ class SalonSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ReservaSerializer(serializers.ModelSerializer):
-    # Usamos `get_dia_semana_display` para mostrar el nombre del día en vez del número
-    dia_semana = serializers.CharField(source='get_dia_semana_display', required=False)
+    # Mostrar el nombre del salón
+    salon_nombre = serializers.CharField(source='salon.nombre', read_only=True)
+    
+   
+    dia_semana = serializers.ChoiceField(choices=Reserva.DIAS_SEMANA, required=False, allow_null=True)
     fecha = serializers.DateField(required=False)
-    salon = SalonSerializer(read_only=True)
 
     class Meta:
         model = Reserva
-        fields = ['id', 'salon', 'clase', 'fecha', 'hora_inicio', 'hora_fin', 'tipo', 'recurrente', 'dia_semana']
+        fields = ['id', 'salon', 'salon_nombre', 'clase', 'fecha', 'hora_inicio', 'hora_fin', 'tipo', 'recurrente', 'dia_semana']
 
+    def to_representation(self, instance):
+        """Modificar la representación para que en la respuesta se muestre el nombre del día en lugar del número"""
+        representation = super().to_representation(instance)
+        if instance.dia_semana is not None:
+            representation['dia_semana'] = dict(Reserva.DIAS_SEMANA).get(instance.dia_semana)
+        return representation
+    
     def to_representation(self, instance):
         """Modificar la representación para mostrar el día en lugar de la fecha si es recurrente."""
         representation = super().to_representation(instance)
         
-        # Si es recurrente, mostramos el día en lugar de la fecha
         if instance.recurrente:
-            # Reemplazamos el campo `fecha` por el nombre del día correspondiente
             representation['fecha'] = dict(self.Meta.model.DIAS_SEMANA).get(instance.dia_semana)
+        
         return representation

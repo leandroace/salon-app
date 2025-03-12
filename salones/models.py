@@ -2,7 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 class Salon(models.Model):
-    id = models.IntegerField(primary_key=True)  # ID fijo basado en el número del salón
+    id = models.IntegerField(primary_key=True)
     nombre = models.CharField(max_length=255, unique=True)
     piso = models.IntegerField()
     capacidad = models.IntegerField()
@@ -29,15 +29,14 @@ class Reserva(models.Model):
 
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE)
     clase = models.CharField(max_length=255)
-    fecha = models.DateField(null=True, blank=True)  # Solo si es un evento único
+    fecha = models.DateField(null=True, blank=True)
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     tipo = models.CharField(max_length=10, choices=TIPOS)
-    recurrente = models.BooleanField(default=False)  # Indica si es una clase recurrente
-    dia_semana = models.IntegerField(choices=DIAS_SEMANA, null=True, blank=True)  # Día de la semana si es recurrente
+    recurrente = models.BooleanField(default=False)
+    dia_semana = models.IntegerField(choices=DIAS_SEMANA, null=True, blank=True)
 
     def clean(self):
-        """Evita reservas en el mismo salón y horario."""
         if self.tipo == 'único' and not self.fecha:
             raise ValidationError("Debe especificar una fecha para eventos únicos.")
         if self.tipo == 'semestral' and self.fecha:
@@ -45,7 +44,7 @@ class Reserva(models.Model):
 
         reservas_existentes = Reserva.objects.filter(
             salon=self.salon,
-            hora_inicio__lt=self.hora_fin,  # Comprobar que los horarios no se solapen
+            hora_inicio__lt=self.hora_fin,
             hora_fin__gt=self.hora_inicio
         )
 

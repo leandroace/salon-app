@@ -30,17 +30,32 @@ const ReservasPage = () => {
 
     // **Agrupar reservas por salón**
     const reservasPorSalon = reservas.reduce((acc, reserva) => {
-        const salonId = reserva.salon.id;
+        const salonId = reserva.salon?.id || reserva.salon;
+        const salonNombre = reserva.salon?.nombre || `Salón ${salonId}`;
+
+        if (!salonId) return acc; // Evita errores si no hay un salón asociado
+
         if (!acc[salonId]) {
             acc[salonId] = {
-                nombre: reserva.salon.nombre, 
+                nombre: salonNombre,
                 reservas: []
             };
         }
         acc[salonId].reservas.push(reserva);
         return acc;
     }, {});
-  
+
+    // **Días de la semana (para mostrar nombres en lugar de números)**
+    const diasSemana = {
+        0: "Lunes",
+        1: "Martes",
+        2: "Miércoles",
+        3: "Jueves",
+        4: "Viernes",
+        5: "Sábado",
+        6: "Domingo",
+    };
+
     return (
         <div>
             <h2>Reservas de Salones</h2>
@@ -49,29 +64,35 @@ const ReservasPage = () => {
             </Link>
 
             {/* **Renderizar una tabla por cada salón** */}
-            {Object.entries(reservasPorSalon).map(([salonId, salonData]) => (
+            {Object.entries(reservasPorSalon).map(([salonId, { nombre, reservas }]) => (
                 <div key={salonId} style={{ marginBottom: "20px" }}>
-                    <h3>{salonData.nombre}</h3>
+                    <h3>{nombre}</h3>
                     <table border="1">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Clase</th>
-                                <th>Fecha</th>
-                                <th>Hora Inicio</th>
-                                <th>Hora Fin</th>
+                                <th>Fecha / Día</th>
+                                <th>Hora de Inicio</th>
+                                <th>Hora de Fin</th>
                                 <th>Tipo</th>
+                                <th>Recurrente</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {salonData.reservas.map((reserva) => (
+                            {reservas.map((reserva) => (
                                 <tr key={reserva.id}>
                                     <td>{reserva.id}</td>
                                     <td>{reserva.clase}</td>
-                                    <td>{reserva.fecha || `Cada ${reserva.dia_semana}`}</td>
+                                    <td>
+                                        {reserva.tipo === "único"
+                                            ? reserva.fecha
+                                            : diasSemana[reserva.dia_semana] || "N/A"}
+                                    </td>
                                     <td>{reserva.hora_inicio}</td>
                                     <td>{reserva.hora_fin}</td>
                                     <td>{reserva.tipo}</td>
+                                    <td>{reserva.recurrente ? "Sí" : "No"}</td>
                                 </tr>
                             ))}
                         </tbody>
