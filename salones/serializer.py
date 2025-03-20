@@ -9,6 +9,7 @@ class SalonSerializer(serializers.ModelSerializer):
 class ReservaSerializer(serializers.ModelSerializer):
     # Mostrar el nombre del salón
     salon_nombre = serializers.CharField(source='salon.nombre', read_only=True)
+    salon_capacidad = serializers.CharField(source ='salon.capacidad', read_only=True)
     
    
     dia_semana = serializers.ChoiceField(choices=Reserva.DIAS_SEMANA, required=False, allow_null=True)
@@ -16,7 +17,7 @@ class ReservaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Reserva
-        fields = ['id', 'salon', 'salon_nombre', 'clase', 'fecha', 'hora_inicio', 'hora_fin', 'tipo', 'recurrente', 'dia_semana']
+        fields = ['id', 'salon', 'salon_nombre','salon_capacidad', 'clase', 'fecha', 'hora_inicio', 'hora_fin', 'tipo', 'recurrente', 'dia_semana']
 
     def to_representation(self, instance):
         """Modificar la representación para que en la respuesta se muestre el nombre del día en lugar del número"""

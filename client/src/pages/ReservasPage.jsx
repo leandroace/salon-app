@@ -5,6 +5,10 @@ const ReservasPage = () => {
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [capacidad, setCapacidad] = useState("");
+    const [fecha, setFecha] = useState("");
+    const [hora, setHora] = useState("");
+    const [dia, setDia] = useState("");
 
     useEffect(() => {
         const fetchReservas = async () => {
@@ -28,16 +32,20 @@ const ReservasPage = () => {
     if (loading) return <p>Cargando reservas...</p>;
     if (error) return <p>Error: {error}</p>;
 
-    // **Agrupar reservas por salón**
+    // Agrupar reservas por salón
     const reservasPorSalon = reservas.reduce((acc, reserva) => {
         const salonId = reserva.salon?.id || reserva.salon;
         const salonNombre = reserva.salon?.nombre || `Salón ${salonId}`;
+        const capacidadSalon = reserva.salon_capacidad || 0;
 
-        if (!salonId) return acc; // Evita errores si no hay un salón asociado
+
+
+        if (!salonId) return acc;
 
         if (!acc[salonId]) {
             acc[salonId] = {
                 nombre: salonNombre,
+                capacidad: capacidadSalon,
                 reservas: []
             };
         }
@@ -45,16 +53,41 @@ const ReservasPage = () => {
         return acc;
     }, {});
 
-    // **Días de la semana (para mostrar nombres en lugar de números)**
-    const diasSemana = {
-        0: "Lunes",
-        1: "Martes",
-        2: "Miércoles",
-        3: "Jueves",
-        4: "Viernes",
-        5: "Sábado",
-        6: "Domingo",
-    };
+
+
+    // Filtrar salones disponibles según capacidad y fecha
+    const salonesDisponibles = Object.entries(reservasPorSalon).filter(([_, salon]) => {
+        // Filtrar por capacidad
+        const capacidadMinima = capacidad ? parseInt(capacidad, 10) : 0;
+        if (capacidadMinima && salon.capacidad < capacidadMinima) {
+            return false;
+        }
+
+        // Filtrar por fecha
+        if (fecha) {
+            const reservasEnFecha = salon.reservas.some(reserva => reserva.fecha === fecha);
+            if (reservasEnFecha) return false;
+        }
+
+        // Filtrar por día y hora combinados
+        if (dia !== "" || hora !== "") {
+            const tieneReservasCoincidentes = salon.reservas.some(reserva => {
+                // Convertir reserva.hora_inicio y reserva.hora_fin a solo HH:mm
+                const horaInicio = reserva.hora_inicio.slice(0, 5);
+                const horaFin = reserva.hora_fin.slice(0, 5);
+
+                // Condición para día y hora
+                const coincideDia = dia !== "" ? reserva.dia_semana == dia : true;
+                const coincideHora = hora !== "" ? (horaInicio <= hora && horaFin > hora) : true;
+
+                return coincideDia && coincideHora; // Solo cuenta si cumple ambas condiciones
+            });
+
+            if (tieneReservasCoincidentes) return false;
+        }
+
+        return true;
+    });
 
     return (
         <div>
@@ -63,42 +96,79 @@ const ReservasPage = () => {
                 <button>Crear Reserva</button>
             </Link>
 
-            {/* **Renderizar una tabla por cada salón** */}
-            {Object.entries(reservasPorSalon).map(([salonId, { nombre, reservas }]) => (
-                <div key={salonId} style={{ marginBottom: "20px" }}>
-                    <h3>{nombre}</h3>
-                    <table border="1">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Clase</th>
-                                <th>Fecha / Día</th>
-                                <th>Hora de Inicio</th>
-                                <th>Hora de Fin</th>
-                                <th>Tipo</th>
-                                <th>Recurrente</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reservas.map((reserva) => (
-                                <tr key={reserva.id}>
-                                    <td>{reserva.id}</td>
-                                    <td>{reserva.clase}</td>
-                                    <td>
-                                        {reserva.tipo === "único"
-                                            ? reserva.fecha
-                                            : diasSemana[reserva.dia_semana] || "N/A"}
-                                    </td>
-                                    <td>{reserva.hora_inicio}</td>
-                                    <td>{reserva.hora_fin}</td>
-                                    <td>{reserva.tipo}</td>
-                                    <td>{reserva.recurrente ? "Sí" : "No"}</td>
+            {/* Filtros */}
+            <div style={{ marginBottom: "20px" }}>
+                <label>
+                    Capacidad mínima:
+                    <input
+                        type="number"
+                        value={capacidad}
+                        onChange={(e) => setCapacidad(e.target.value)}
+                        min="1"
+                    />
+                </label>
+                <label style={{ marginLeft: "10px" }}>
+                    Fecha:
+                    <input
+                        type="date"
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                    />
+                </label>
+                <label style={{ marginLeft: "30px" }}>
+                    Hora:
+                    <input
+                        type="time"
+                        value={hora}
+                        onChange={(e) => setHora(e.target.value)}
+                    />
+
+                </label>
+                <label style={{ marginLeft: "50px" }}>
+                    Día:
+                    <select value={dia} onChange={(e) => setDia(e.target.value)}>
+                        <option value=""></option>
+                        <option value="0">Lunes</option>
+                        <option value="1">Martes</option>
+                        <option value="2">Miércoles</option>
+                        <option value="3">Jueves</option>
+                        <option value="4">Viernes</option>
+                    </select>
+                </label>
+            </div>
+
+            {/* Mostrar salones disponibles */}
+            {salonesDisponibles.length > 0 ? (
+                salonesDisponibles.map(([salonId, { nombre, capacidad, reservas }]) => (
+                    <div key={salonId} style={{ marginBottom: "20px" }}>
+                        <h3>{nombre} (Capacidad: {capacidad})</h3>
+                        <table border="1">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Clase</th>
+                                    <th>Fecha Mes/dia</th>
+                                    <th>Hora de Inicio</th>
+                                    <th>Hora de Fin</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ))}
+                            </thead>
+                            <tbody>
+                                {reservas.map((reserva) => (
+                                    <tr key={reserva.id}>
+                                        <td>{reserva.id}</td>
+                                        <td>{reserva.clase}</td>
+                                        <td>{reserva.fecha}</td>
+                                        <td>{reserva.hora_inicio}</td>
+                                        <td>{reserva.hora_fin}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ))
+            ) : (
+                <p>No hay salones disponibles con los filtros seleccionados.</p>
+            )}
         </div>
     );
 };
