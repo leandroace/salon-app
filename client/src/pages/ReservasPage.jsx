@@ -63,14 +63,27 @@ const ReservasPage = () => {
             return false;
         }
 
-        // Filtrar por fecha
-        if (fecha) {
-            const reservasEnFecha = salon.reservas.some(reserva => reserva.fecha === fecha);
-            if (reservasEnFecha) return false;
+        // Filtrar por fecha y hora
+        if (fecha && hora) {
+            const tieneConflicto = salon.reservas.some(reserva => {
+                const mismaFecha = reserva.fecha === fecha;
+
+                const horaInicio = reserva.hora_inicio.slice(0, 5);
+                const horaFin = reserva.hora_fin.slice(0, 5);
+                const horaCoincide = horaInicio <= hora && hora < horaFin;
+
+                return mismaFecha && horaCoincide;
+            });
+
+            if (tieneConflicto) return false;
         }
 
+
+
+
+
         // Filtrar por día y hora combinados
-        if (dia !== "" || hora !== "") {
+        if (dia !== "" && hora !== "") {
             const tieneReservasCoincidentes = salon.reservas.some(reserva => {
                 // Convertir reserva.hora_inicio y reserva.hora_fin a solo HH:mm
                 const horaInicio = reserva.hora_inicio.slice(0, 5);
